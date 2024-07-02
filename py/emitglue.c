@@ -119,7 +119,7 @@ void mp_emit_glue_assign_native(mp_raw_code_t *rc, mp_raw_code_kind_t kind, void
     #elif MICROPY_EMIT_ARM
     #if (defined(__linux__) && defined(__GNUC__)) || __ARM_ARCH == 7
     __builtin___clear_cache(fun_data, (uint8_t *)fun_data + fun_len);
-    #elif defined(__arm__)
+    #elif defined(__arm__) && __ARM_ARCH >= 5
     // Flush I-cache and D-cache.
     asm volatile (
         "0:"

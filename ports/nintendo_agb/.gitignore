@@ -1,0 +1,9 @@
+/build
+/romfs
+/mkromfs.py
+/*.zip
+/*.bat
+/*.gba
+/*.sav
+/*.img
+!/romfs.img
