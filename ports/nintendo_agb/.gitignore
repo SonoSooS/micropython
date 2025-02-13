@@ -7,3 +7,4 @@
 /*.sav
 /*.img
 !/romfs.img
+/nsys/include/_gba_old/
