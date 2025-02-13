@@ -57,7 +57,16 @@ def preprocess():
 
     def pp(flags):
         def run(files):
-            return subprocess.check_output(args.pp + flags + files)
+            try:
+                return subprocess.check_output(args.pp + flags + files)
+            except Exception as e:
+                print("-", args.pp + flags + files)
+                print(e)
+                raise
+            except:
+                print("Unknown exception")
+                raise
+            
 
         return run
 
