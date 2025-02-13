@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include <gba/sio.h>
+#include <gba/irq.h>
 
 static int mgba_dbg_en = 0;
 
@@ -47,15 +48,15 @@ void nsys_init_uart(void)
         mgba_dbg_en = 1;
     }
     
-    REG_SIOPORTCNT = 0;
-    REG_SIOCNT = 3 << 12;
-    REG_SIOCNT |= (0 << 0) /*| (1 << 2)*/ | (1 << 7) | (0 << 8);
-    REG_SIOCNT |= (1 << 10) | (1 << 11);
+    REG_SIOCNT &= SIOCNT_MODE__M;
+    REG_SIOCNT = SIOCNT_MODE_UART;
+    REG_SIOCNT |= SIO_UART_BAUD_9600 /*| SIO_UART_SEND_ON_CLEAR*/ | SIO_UART_SIZE_8BIT;
+    REG_SIOCNT |= SIO_UART_EN_TX | SIO_UART_EN_RX;
 }
 
 __attribute__((noinline)) void sioSendSyncChar(char chr)
 {
-    while(REG_SIOCNT & (1 << 4))
+    while(REG_SIOCNT & SIO_UART_F_SEND_FULL)
         ;
     
     REG_SIODAT8 = chr;
@@ -63,7 +64,7 @@ __attribute__((noinline)) void sioSendSyncChar(char chr)
 
 __attribute__((noinline)) int sioRecvSyncChar(void)
 {
-    while(REG_SIOCNT & (1 << 5))
+    while(REG_SIOCNT & SIO_UART_F_RECV_EMPTY)
         ;
     
     return (int)REG_SIODAT8;
@@ -71,7 +72,7 @@ __attribute__((noinline)) int sioRecvSyncChar(void)
 
 __attribute__((noinline)) int sioRecvAsyncChar(void)
 {
-    if(!(REG_SIOCNT & (1 << 5)))
+    if(!(REG_SIOCNT & SIO_UART_F_RECV_EMPTY))
         return (int)REG_SIODAT8;
     
     return -1;
@@ -97,8 +98,11 @@ int mp_hal_stdin_rx_chr(void)
     
     if(uart_tx_placeholder >= 0)
     {
+        u32 irqdis = REG_IME;
+        REG_IME = 0
         ret = uart_tx_placeholder;
         uart_tx_placeholder = -1;
+        REG_IME = irqdis;
         return ret;
     }
     
@@ -120,7 +124,7 @@ void mp_hal_stdout_tx_strn(const char *str, size_t len)
     while (len--)
     {
         if (*str == '\n')
-            sioSendSyncChar('\r');
+            sioSendSyncChar('\r'); //HACK: don't do this, please
         
         sioSendSyncChar(*str++);
     }
