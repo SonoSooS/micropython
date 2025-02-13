@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-
 typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
@@ -23,3 +22,10 @@ typedef volatile s8 vs8;
 typedef volatile s16 vs16;
 typedef volatile s32 vs32;
 typedef volatile s64 vs64;
+
+typedef s32 Result;
+
+#define _COMBINE(a,b) a##b
+#define BFAT(val, at) (_COMBINE(val,u) << (at))
+#define BBIT(n) BFAT(1,n)
+#define NBITS(n) (BBIT(n)-1)
