@@ -90,7 +90,7 @@
 #define SIOCNT_MODE_UART                BFAT(3, 12)
 #define SIOCNT_MODE__M                  BFAT(3, 12)
 
-#define SIOCNT_IE                       BIT(14)
+#define SIOCNT_IE                       BBIT(14)
 
 #define SIOCNT_SPI_SIZE_8               0
 #define SIOCNT_SPI_SIZE_32              BBIT(12)

@@ -5,9 +5,11 @@
 #include <gba/sio.h>
 #include <gba/irq.h>
 
+#include "py/stream.h"
+
 static int mgba_dbg_en = 0;
 
-int uart_tx_placeholder;
+volatile int uart_tx_placeholder = 0;
 
 #define MGBA_DBGEN (*(volatile uint16_t*)0x04FFF780)
 #define MGBA_FLAGS (*(volatile uint16_t*)0x04FFF700)
@@ -48,10 +50,12 @@ void nsys_init_uart(void)
         mgba_dbg_en = 1;
     }
     
+    REG_RCNT = RCNT_MODE_SIO;
+    
     REG_SIOCNT &= SIOCNT_MODE__M;
     REG_SIOCNT = SIOCNT_MODE_UART;
     REG_SIOCNT |= SIO_UART_BAUD_9600 /*| SIO_UART_SEND_ON_CLEAR*/ | SIO_UART_SIZE_8BIT;
-    REG_SIOCNT |= SIO_UART_EN_TX | SIO_UART_EN_RX;
+    REG_SIOCNT |= SIO_UART_EN_TX | SIO_UART_EN_RX ;//| SIOCNT_IE;
 }
 
 __attribute__((noinline)) void sioSendSyncChar(char chr)
@@ -92,16 +96,30 @@ __attribute__((noinline)) void sioSendSyncStr(const char* str)
     }
 }
 
+uintptr_t mp_hal_stdio_poll(uintptr_t poll_flags)
+{
+    uintptr_t res = 0;
+    
+    if((poll_flags & MP_STREAM_POLL_RD) && !(REG_SIOCNT & SIO_UART_F_RECV_EMPTY))
+        res |= MP_STREAM_POLL_RD;
+    if((poll_flags & MP_STREAM_POLL_WR) && !(REG_SIOCNT & SIO_UART_F_SEND_FULL))
+        res |= MP_STREAM_POLL_WR;
+    if((poll_flags & MP_STREAM_POLL_ERR) && (REG_SIOCNT & SIO_UART_F_ERROR))
+        res |= MP_STREAM_POLL_ERR;
+    
+    return res;
+}
+
 int mp_hal_stdin_rx_chr(void)
 {
     int ret;
     
-    if(uart_tx_placeholder >= 0)
+    if(uart_tx_placeholder > 0)
     {
         u32 irqdis = REG_IME;
-        REG_IME = 0
+        REG_IME = 0;
         ret = uart_tx_placeholder;
-        uart_tx_placeholder = -1;
+        uart_tx_placeholder = 0;
         REG_IME = irqdis;
         return ret;
     }

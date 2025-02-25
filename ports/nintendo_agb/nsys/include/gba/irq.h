@@ -7,12 +7,12 @@
 #define REG_IEIF                        (*(vu32*)0x04000200)
 #define REG_IE                          (((vu16*)0x04000200)[0])
 #define REG_IF                          (((vu16*)0x04000200)[1])
-#define REG_IME                         (((vu32*)0x04000208)[2])
+#define REG_IME                         (((vu32*)0x04000200)[2])
 #define REG_HALTCNT                     (*(vu16*)0x04000300)
 #define BIOS_IF                         (((vu16*)0x04000000)[-4])
 #define BIOS_ISR_PTR                    (((void(**)(void))0x04000000)[-1])
 
-#define IEIF_MERGE(val)                 ((val)|((val)>>16))
+#define IEIF_MERGE(val)                 ((val)&((val)>>16))
 
 #define IRQ_VBLANK                      BBIT(0)
 #define IRQ_HBLANK                      BBIT(1)

@@ -1,129 +1,147 @@
-/*
- * This file is part of the MicroPython project, http://micropython.org/
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2014-2021 Damien P. George
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-
 #include <stdint.h>
 #include <stddef.h>
 #include <sys/types.h>
 
-// Need to provide a declaration/definition of alloca()
 #include <alloca.h>
 
-// Options to control how MicroPython is built
 
-// Use the minimal starting configuration (disables all optional features).
 //#define MICROPY_CONFIG_ROM_LEVEL                (MICROPY_CONFIG_ROM_LEVEL_BASIC_FEATURES)
 #define MICROPY_CONFIG_ROM_LEVEL                (MICROPY_CONFIG_ROM_LEVEL_EXTRA_FEATURES)
+//#define MICROPY_CONFIG_ROM_LEVEL                (MICROPY_CONFIG_ROM_LEVEL_FULL_FEATURES)
 //#define MICROPY_CONFIG_ROM_LEVEL                (MICROPY_CONFIG_ROM_LEVEL_EVERYTHING)
 
-// Compiler configuration
-#define MICROPY_ENABLE_COMPILER                 (1)
-
-// Python internal features
-#define MICROPY_ERROR_REPORTING                 (MICROPY_ERROR_REPORTING_DETAILED)
-//#define MICROPY_ERROR_REPORTING                 (MICROPY_ERROR_REPORTING_NONE)
-
-
-#define MICROPY_QSTR_EXTRA_POOL           mp_qstr_frozen_const_pool
-#define MICROPY_ENABLE_GC                 (1)
-#define MICROPY_GC_SPLIT_HEAP (1)
-#define MICROPY_HELPER_REPL               (1)
-//#define MICROPY_MODULE_FROZEN_MPY         (0)
-#define MICROPY_ENABLE_EXTERNAL_IMPORT    (1)
-#define MICROPY_PERSISTENT_CODE_LOAD      (1)
-
-#define MICROPY_ENABLE_FINALISER          (1)
-
-#define MICROPY_LONGINT_IMPL (MICROPY_LONGINT_IMPL_MPZ)
-#define MICROPY_FLOAT_IMPL (MICROPY_FLOAT_IMPL_FLOAT)
 
 //#define MICROPY_OBJ_REPR (MICROPY_OBJ_REPR_C)
 #define MICROPY_OBJ_REPR (MICROPY_OBJ_REPR_B)
 
-#define MICROPY_OPT_COMPUTED_GOTO (1)
+//#define MICROPY_GC_CONSERVATIVE_CLEAR (0)
 
+#define MICROPY_ALLOC_PARSE_CHUNK_INIT (16)
+#define MICROPY_ALLOC_PATH_MAX (256)
+#define MICROPY_PERSISTENT_CODE_LOAD (1)
+
+
+#define MICROPY_EMIT_ARM (0)
+#define MICROPY_EMIT_THUMB (0)
+#define MICROPY_EMIT_INLINE_THUMB (0)
+
+
+#define MICROPY_ENABLE_COMPILER (1)
+#define MICROPY_DYNAMIC_COMPILER (0)
+
+#define MICROPY_OPT_COMPUTED_GOTO (MICROPY_CONFIG_ROM_LEVEL_AT_LEAST_BASIC_FEATURES)
+
+
+#define MICROPY_ENABLE_EXTERNAL_IMPORT    (1)
+#define MICROPY_READER_VFS (1)
+
+#define MICROPY_ENABLE_GC (1)
+//#define MICROPY_PY_GC_COLLECT_RETVAL (1)
+#define MICROPY_GC_SPLIT_HEAP (1)
+//TODO: figure out how to enable this
+#define MICROPY_GC_SPLIT_HEAP_AUTO (0)
+//#define MICROPY_ENABLE_FINALISER (1)
+//TODO: figure out if this is useful for us (move pystack to IWRAM)
+#define MICROPY_ENABLE_PYSTACK (0)
+#define MICROPY_PYSTACK_ALIGN (4)
+// No data aborts, excess checking for not much benefit
 #define MICROPY_STACK_CHECK (0)
+
+#if 1
+#define MICROPY_KBD_EXCEPTION (1)
+#define MICROPY_ASYNC_KBD_INTR (1)
+#define MICROPY_HELPER_REPL (1)
+#define MICROPY_REPL_EMACS_KEYS (1)
+#define MICROPY_REPL_EMACS_WORDS_MOVE (1)
+#define MICROPY_REPL_EMACS_EXTRA_WORDS_MOVE (1)
+#define MICROPY_REPL_AUTO_INDENT (1)
+#define MICROPY_PY_BUILTINS_INPUT (1)
+#define MICROPY_PY_SYS (1)
+#define MICROPY_PY_SYS_STDFILES (1)
+#define MICROPY_PY_SYS_STDIO_BUFFER (1)
+#endif
+
+#define MICROPY_LONGINT_IMPL (MICROPY_LONGINT_IMPL_MPZ)
+#define MICROPY_FLOAT_IMPL (MICROPY_FLOAT_IMPL_FLOAT)
+
+#define MICROPY_ERROR_REPORTING                 (MICROPY_ERROR_REPORTING_DETAILED)
+//#define MICROPY_ERROR_REPORTING                 (MICROPY_ERROR_REPORTING_NONE)
+
+#if 0
+#define MICROPY_CPYTHON_COMPAT (0)
+#define MICROPY_FULL_CHECKS (0)
+#endif
+
+#define MICROPY_USE_INTERNAL_ERRNO (1)
+
 #define MICROPY_ENABLE_SCHEDULER (1)
 #define MICROPY_SCHEDULER_STATIC_NODES (1)
 #define MICROPY_SCHEDULER_DEPTH (8)
 
-#define MICROPY_PY_GC_COLLECT_RETVAL (1)
+#define MICROPY_VFS (1)
+#define MICROPY_VFS_FAT (1)
 
-#define MICROPY_PY_SYS_STDFILES (0)
-#define MICROPY_PY_SYS_STDIO_BUFFER (0)
-#define MICROPY_PY_UJSON (0)
-#define MICROPY_PY_UOS (1)
-#define MICROPY_PY_URANDOM (1)
-#define MICROPY_PY_USELECT (0)
-#define MICROPY_PY_UASYNCIO (0)
-#define MICROPY_PY_BTREE (0)
+#if 1
+#define MPY_EXT_ENABLE_EXTRA (0)
+#else
+#define MPY_EXT_ENABLE_EXTRA (MICROPY_CONFIG_ROM_LEVEL_AT_LEAST_EXTRA_FEATURES)
+#endif
 
+#define MICROPY_PY_ASYNC_AWAIT (MPY_EXT_ENABLE_EXTRA)
+#define MICROPY_PY_SELECT (0)
+#define MICROPY_PY_SELECT_SELECT (0)
+#define MICROPY_PY_TIME (0)
+#define MICROPY_PY_ASYNCIO (MPY_EXT_ENABLE_EXTRA)
 #define MICROPY_PY_UCTYPES (1)
-#define MICROPY_PY_UCTYPES_NATIVE_C_TYPES (1)
+#define MICROPY_PY_DEFLATE (MPY_EXT_ENABLE_EXTRA)
+#define MICROPY_PY_JSON (MPY_EXT_ENABLE_EXTRA)
+#define MICROPY_PY_RE (MPY_EXT_ENABLE_EXTRA)
+#define MICROPY_PY_HEAPQ (MPY_EXT_ENABLE_EXTRA)
+#define MICROPY_PY_HASHLIB (MPY_EXT_ENABLE_EXTRA)
+#define MICROPY_PY_HASHLIB_MD5 (1)
+#define MICROPY_PY_HASHLIB_SHA1  (1)
+#define MICROPY_PY_HASHLIB_SHA256 (1)
+#define MICROPY_PY_CRYPTOLIB (MICROPY_CONFIG_ROM_LEVEL_AT_LEAST_FULL_FEATURES)
+#define MICROPY_PY_CRYPTOLIB_CTR (1)
+#define MICROPY_PY_CRYPTOLIB_CONSTS (1)
 #define MICROPY_PY_FRAMEBUF (1)
 
-#define MICROPY_READER_VFS (1)
+#define MICROPY_PY_MACHINE                      (1)
+#define MICROPY_PY_MACHINE_INCLUDEFILE          "ports/nintendo_agb/modmachine.c"
+#define MICROPY_PY_MACHINE_BARE_METAL_FUNCS     (0)
+#define MICROPY_PY_MACHINE_DISABLE_IRQ_ENABLE_IRQ (1)
+//TODO: enable hardware features, like SPI, I2C, etc.
 
-#define MICROPY_ALLOC_PATH_MAX                      (240)
+
+#define MICROPY_OBJ_BASE_ALIGNMENT __attribute__((aligned(4)))
+
+
 #define MICROPY_FATFS_ENABLE_LFN                    (2)
-#define MICROPY_FATFS_MAX_LFN                       (MICROPY_ALLOC_PATH_MAX)
+#define MICROPY_FATFS_MAX_LFN                       (128)
 #define MICROPY_FATFS_LFN_CODE_PAGE                 437 // 1=SFN/ANSI 437=LFN/U.S.(OEM)
 #define MICROPY_FATFS_RPATH                         (2)
 #define MICROPY_FATFS_REENTRANT                     (0)
 
-#define MICROPY_VFS (1)
-#define MICROPY_VFS_FAT (1)
-#define MICROPY_PY_IO (1)
-#define MICROPY_PY_SYS (1)
-#define MICROPY_PY_IOBASE (1)
-#define MICROPY_PY_MACHINE (1)
 
-#define MICROPY_EMIT_THUMB (0)
+#define MICROPY_EMIT_X64 (0)
+#define MICROPY_EMIT_X86 (0)
 #define MICROPY_EMIT_THUMB_ARMV7M (0)
-#define MICROPY_EMIT_INLINE_THUMB (0)
 #define MICROPY_EMIT_INLINE_THUMB_FLOAT (0)
-#define MICROPY_EMIT_ARM (0)
+#define MICROPY_EMIT_XTENSA (0)
+#define MICROPY_EMIT_INLINE_XTENSA (0)
+#define MICROPY_EMIT_XTENSAWIN (0)
 
-#define MICROPY_DYNAMIC_COMPILER (1)
-//#define MICROPY_EMIT_X64 (MICROPY_DYNAMIC_COMPILER)
-//#define MICROPY_EMIT_X86 (MICROPY_DYNAMIC_COMPILER)
-//#define MICROPY_EMIT_XTENSA (MICROPY_DYNAMIC_COMPILER)
-//#define MICROPY_EMIT_INLINE_XTENSA (MICROPY_DYNAMIC_COMPILER)
-//#define MICROPY_EMIT_XTENSAWIN (MICROPY_DYNAMIC_COMPILER)
 
-#define MICROPY_ALLOC_PARSE_CHUNK_INIT    (16)
 
 #define MICROPY_HW_BOARD_NAME "Nintendo Game Boy Advance"
 #define MICROPY_HW_MCU_NAME "CPU-AGB"
+
 
 // No need to use ARM that much
 #define MICROPY_MAKE_POINTER_CALLABLE(p)            ((void *)((mp_uint_t)(p) | 1))
 
 #define MP_STATE_PORT MP_STATE_VM
-//#define MP_SSIZE_MAX                                (0x7FFFFFFF)
-#define MP_SSIZE_MAX                                (0xFFFFFF)
+#define MP_SSIZE_MAX                                (0x7FFFFFFF)
 
 #define asm __asm__
 

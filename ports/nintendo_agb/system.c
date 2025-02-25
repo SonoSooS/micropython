@@ -51,9 +51,9 @@ extern void nsys_init_uart(void);
 void mpdrv_fs_init(void);
 extern int main(int argc, char **argv);
 
-extern int uart_tx_placeholder;
+extern volatile int uart_tx_placeholder;
 
-__attribuite__((noinline)) static void bare_ISR_internal(void)
+__attribute__((noinline)) static void bare_ISR_internal(void)
 {
     //sioSendSyncStr("mpy got IRQ\r\n");
     
@@ -63,7 +63,7 @@ __attribuite__((noinline)) static void bare_ISR_internal(void)
     //BIOS_IF |= irq_data;
     BIOS_IF = irq_data;
     
-    if(uart_tx_placeholder < 0 && !(REG_SIOCNT & SIO_UART_F_RECV_EMPTY))
+    if(uart_tx_placeholder == 0 && !(REG_SIOCNT & SIO_UART_F_RECV_EMPTY))
     {
         int c = REG_SIODAT8;
         #if MICROPY_KBD_EXCEPTION
@@ -93,7 +93,7 @@ __attribute__((section(".isr_vector.start"),target("arm"),naked)) void Reset_Han
     if(((char *)&__bss_end - (char *)&__bss_start) > 0)
         memset(&__bss_start, 0, (char *)&__bss_end - (char *)&__bss_start);
     
-    uart_tx_placeholder = -1;
+    uart_tx_placeholder = 0;
     nsys_init_uart();
     
     sioSendSyncStr("mpy low-level init\r\n");

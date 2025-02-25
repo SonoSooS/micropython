@@ -56,7 +56,7 @@ int main(int argc, char **argv)
     #endif
     #endif
     mp_init();
-    pyexec_frozen_module("_boot.py");
+    pyexec_frozen_module("_boot.py", false);
     pyexec_file_if_exists("boot.py");
     #if MICROPY_ENABLE_COMPILER
     #if MICROPY_REPL_EVENT_DRIVEN
@@ -89,7 +89,7 @@ void gc_collect(void)
     gc_helper_collect_regs_and_stack();
     //gc_collect_root(&dummy, ((mp_uint_t)stack_top - (mp_uint_t)&dummy) / sizeof(mp_uint_t));
     gc_collect_end();
-    gc_dump_info();
+    gc_dump_info(&mp_plat_print);
 }
 #endif
 
