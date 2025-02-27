@@ -167,7 +167,12 @@ void asm_arm_exit(asm_arm_t *as) {
         emit_al(as, asm_arm_op_add_imm(ASM_ARM_REG_SP, ASM_ARM_REG_SP, as->stack_adjust));
     }
 
+#if __ARM_ARCH >= 5
     emit_al(as, asm_arm_op_pop(as->push_reglist | (1 << ASM_ARM_REG_PC)));
+#else
+    emit_al(as, asm_arm_op_pop(as->push_reglist | (1 << ASM_ARM_REG_LR)));
+    asm_arm_bx_reg(as, ASM_ARM_REG_LR);
+#endif
 }
 
 void asm_arm_push(asm_arm_t *as, uint reglist) {
@@ -366,8 +371,14 @@ void asm_arm_b_label(asm_arm_t *as, uint label) {
 void asm_arm_bl_ind(asm_arm_t *as, uint fun_id, uint reg_temp) {
     // The table offset should fit into the ldr instruction
     assert(fun_id < (0x1000 / 4));
+#if __ARM_ARCH >= 5
     emit_al(as, asm_arm_op_mov_reg(ASM_ARM_REG_LR, ASM_ARM_REG_PC)); // mov lr, pc
     emit_al(as, 0x597f000 | (fun_id << 2)); // ldr pc, [r7, #fun_id*4]
+#else
+    emit_al(as, asm_arm_op_add_imm(ASM_ARM_REG_LR, ASM_ARM_REG_PC, 4));
+    emit_al(as, 0x5970000 | (reg_temp << 12) | (fun_id << 2)); // ldr reg_temp, [r7, #fun_id*4]
+    asm_arm_bx_reg(as, reg_temp);
+#endif
 }
 
 void asm_arm_bx_reg(asm_arm_t *as, uint reg_src) {

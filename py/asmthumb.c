@@ -131,11 +131,23 @@ void asm_thumb_entry(asm_thumb_t *as, int num_locals) {
     if (mp_dynamic_compiler.native_arch == MP_NATIVE_ARCH_ARMV6)
     #endif
     {
+    #if __ARM_ARCH >= 5
         asm_thumb_op32(as, 0x4010, 0xe92d); // push {r4, lr}
         asm_thumb_op32(as, 0xe009, 0xe28f); // add lr, pc, 8 + 1
         asm_thumb_op32(as, 0xff3e, 0xe12f); // blx lr
         asm_thumb_op32(as, 0x4010, 0xe8bd); // pop {r4, lr}
         asm_thumb_op32(as, 0xff1e, 0xe12f); // bx lr
+    #else
+        // .arm
+        asm_thumb_op32(as, 0x4008, 0xE92D); // STMFD SP!, {r3, LR}  @ SP -= 8; SP[+0]=r3; SP[+4]=LR
+        asm_thumb_op32(as, 0x0004, 0xE28F); // ADD LR, PC, #4       @ LR points after BX r3
+        asm_thumb_op32(as, 0x3009, 0xE28E); // ADD r3, LR, #9       @ r3 points at Thumb POP {r3}
+        asm_thumb_op32(as, 0xFF13, 0xE12F); // BX r3                @ goto Thumb code
+        asm_thumb_op32(as, 0x4000, 0xE8BD); // LDMFD SP!, {LR}      @ LR = [SP], #4
+        asm_thumb_op32(as, 0xFF1E, 0xE12F); // BX LR                @ real return
+        // .thumb
+        asm_thumb_op16(as, 0xBC08);         // POP {r3}             @ r3 = [SP], #4
+    #endif
     }
     #endif
 
@@ -586,7 +598,13 @@ void asm_thumb_b_rel12(asm_thumb_t *as, int rel) {
 void asm_thumb_bl_ind(asm_thumb_t *as, uint fun_id, uint reg_temp) {
     // Load ptr to function from table, indexed by fun_id, then call it
     asm_thumb_ldr_reg_reg_i12_optimised(as, reg_temp, ASM_THUMB_REG_FUN_TABLE, fun_id);
+#if __ARM_ARCH >= 5
     asm_thumb_op16(as, OP_BLX(reg_temp));
+#else
+    asm_thumb_op16(as, 0xE000);                     // B .+4
+    asm_thumb_op16(as, 0x4700 | (reg_temp << 3));   // BX reg_temp
+    asm_thumb_op32(as, 0xF7FF, 0xFFFE);             // BL .-2
+#endif
 }
 
 #endif // MICROPY_EMIT_THUMB || MICROPY_EMIT_INLINE_THUMB
