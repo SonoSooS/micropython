@@ -225,7 +225,17 @@ void asm_thumb_exit(asm_thumb_t *as) {
             asm_thumb_op16(as, OP_ADD_SP(adj));
         }
     }
+#if __ARM_ARCH >= 5
     asm_thumb_op16(as, OP_POP_RLIST_PC(as->push_reglist));
+#else
+    asm_thumb_op16(as, OP_POP_RLIST(as->push_reglist));
+    asm_thumb_op16(as, OP_PUSH_RLIST(1 << ASM_THUMB_REG_R0));               // PUSH {r0}
+    asm_thumb_op16(as, 0x9801);                                             // LDR r0, [SP, #4]
+    asm_thumb_mov_reg_reg(as, ASM_THUMB_REG_R14, ASM_THUMB_REG_R0);         // MOV LR, r0
+    asm_thumb_op16(as, OP_POP_RLIST(1 << ASM_THUMB_REG_R0));                // POP {r0}
+    asm_thumb_op16(as, 0xB001);                                             // ADD SP, #4
+    asm_thumb_op16(as, 0x4700 | (ASM_THUMB_REG_R14 << 3)); // BX LR         // BX LR
+#endif
 }
 
 STATIC mp_uint_t get_label_dest(asm_thumb_t *as, uint label) {
@@ -356,7 +366,11 @@ size_t asm_thumb_mov_reg_i32(asm_thumb_t *as, uint reg_dest, mp_uint_t i32) {
         // _data: .word i32
         //  1:
         if (as->base.code_offset & 2u) {
+        #if __ARM_ARCH >= 5
             asm_thumb_op16(as, ASM_THUMB_OP_NOP);
+        #else
+            asm_thumb_op16(as, 0x46C0); // NOP (MOV r8, r8)
+        #endif
         }
         asm_thumb_ldr_rlo_pcrel_i8(as, reg_dest, 0);
         asm_thumb_op16(as, OP_B_N(2));
@@ -452,10 +466,18 @@ void asm_thumb_mov_reg_pcrel(asm_thumb_t *as, uint rlo_dest, uint label) {
         asm_thumb_sxth_rlo_rlo(as, rlo_dest, rlo_dest); // 2 bytes
     } else {
         rel -= 8 + 4; // adjust for four instructions and then PC+4 prefetch of add_reg_reg
+    #if __ARM_ARCH >= 5
         // 6 bytes
         asm_thumb_mov_rlo_i16(as, rlo_dest, rel);
         // 2 bytes - not always needed, but we want to keep the size the same
         asm_thumb_sxth_rlo_rlo(as, rlo_dest, rlo_dest);
+    #else
+        // 8 bytes
+        asm_thumb_mov_rlo_i8(as, rlo_dest, (rel >> 8) & 0xFF);
+        asm_thumb_lsl_rlo_rlo_i5(as, rlo_dest, rlo_dest, 24);
+        asm_thumb_asr_rlo_rlo_i5(as, rlo_dest, rlo_dest, 16);
+        asm_thumb_add_rlo_i8(as, rlo_dest, (rel) & 0xFF);
+    #endif
     }
     asm_thumb_add_reg_reg(as, rlo_dest, ASM_THUMB_REG_R15); // 2 bytes
 }
@@ -603,7 +625,7 @@ void asm_thumb_bl_ind(asm_thumb_t *as, uint fun_id, uint reg_temp) {
 #else
     asm_thumb_op16(as, 0xE000);                     // B .+4
     asm_thumb_op16(as, 0x4700 | (reg_temp << 3));   // BX reg_temp
-    asm_thumb_op32(as, 0xF7FF, 0xFFFE);             // BL .-2
+    asm_thumb_op32(as, 0xF7FF, 0xFFFD);             // BL .-2
 #endif
 }
 
